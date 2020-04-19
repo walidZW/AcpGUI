@@ -11,10 +11,10 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.Controller">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800" prefWidth="1200" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.Controller">
    <children>
       <ImageView fx:id="faceImage" fitHeight="150.0" fitWidth="158.0" layoutX="390.0" layoutY="141.0" pickOnBounds="true" preserveRatio="true" />
-      <Button fx:id="trainBtn" layoutX="38.0" layoutY="92.0" mnemonicParsing="false" onAction="#trainModel" text="Train model" />
+      <Button  layoutX="38.0" layoutY="92.0" mnemonicParsing="false" onAction="#trainModel" text="Train model" />
       <HBox layoutY="-1.0" prefHeight="89.0" prefWidth="600.0" style="-fx-background-color: #ffedb0;">
          <children>
             <Label alignment="CENTER" prefHeight="93.0" prefWidth="601.0" text="Face Recognition">
@@ -29,7 +29,7 @@
             <Font size="15.0" />
          </font>
       </Label>
-      <TextField fx:id="facePath" layoutX="377.0" layoutY="316.0" promptText="path to image" />
+      <TextField  layoutX="377.0" layoutY="316.0" promptText="path to image" />
       <Button fx:id="loadBtn" layoutX="535.0" layoutY="316.0" mnemonicParsing="false" onAction="#loadFace" text="Load" />
       <Label layoutX="340.0" layoutY="320.0" text="Path">
          <font>
