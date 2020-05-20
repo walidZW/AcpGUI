@@ -2,9 +2,13 @@ package kernel;
 //la classe acp
 
 import weka.core.matrix.Matrix;
+import weka.core.matrix.SingularValueDecomposition;
+
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 
 public class Acp implements Serializable {
@@ -13,7 +17,7 @@ public class Acp implements Serializable {
     private int trainImagesNumber = 5;
     final int height = 112;
     final int width = 92;
-    private String path = "src/sample/orl/";
+    private String path = "src/sample/db/orl/";
     private final int personImages=10;
 
     private double threshold;
@@ -22,6 +26,7 @@ public class Acp implements Serializable {
     private Matrix projectedCenters;
     private Matrix mean;
     private EigenSpace eigenSpace;
+    public HashMap<String, Number> distancesMap = new HashMap<>();
 
 
     public Acp(double threshold){
@@ -36,10 +41,22 @@ public class Acp implements Serializable {
         Matrix total = new Matrix(height * width, directory.listFiles().length * trainImagesNumber);
         int i ;
         int j = 0;
-        File[] images = new File[10];
+        File[] images;
+
         for (File fd : directory.listFiles()) {
+            distancesMap.put(fd.getName(), 0);
             images = fd.listFiles();
             for (i = 0; i < trainImagesNumber; i++) {
+                assert images != null;
+                try{
+
+                    ImageMat.convertToBMP(images[i].getPath());
+                    ImageMat.grayscaleImage(images[i].getPath());
+                    ImageMat.resizeImage(images[i].getPath());
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 Matrix mat = ImageMat.imageToVector(images[i].getPath());
 
                 Util.replaceColumn(total,mat,i+j);
@@ -47,10 +64,11 @@ public class Acp implements Serializable {
             j = j + trainImagesNumber;
         }
 
+
         return total;
     }
 
-    // TODO: 16/03/2020 method tested 
+    // TODO: 16/03/2020 method tested
     public Matrix calculerVisageMoyen(Matrix dataSet){
         Matrix mean = new Matrix(dataSet.getRowDimension(), 1);
         int columnDim = dataSet.getColumnDimension();
@@ -67,9 +85,9 @@ public class Acp implements Serializable {
 
 
     // used to calculate the reduced dimension of the new eigenspace
-    public Matrix reduireDimensions(Matrix eigenvectors, Matrix eigenvalues){
+    public Matrix reduireDimensions(Matrix eigenvectors, Matrix eigenvalues, double percentage){
 
-        double perc = 0.9;
+        double perc = percentage;
         double trace = eigenvalues.trace();
         double s = 0;
         int i = 0;
@@ -94,7 +112,7 @@ public class Acp implements Serializable {
         return eigenSpace;
     }
 
-    // TODO: 16/03/2020 test this method 
+    // TODO: 16/03/2020 test this method
     // project data onto the new eigenspace
     public Matrix projectData(EigenSpace eigenSpace, Matrix dataSet){
 
@@ -102,10 +120,10 @@ public class Acp implements Serializable {
         Matrix projectedData = new Matrix(eigenSpace.getDimension(), dataSet.getColumnDimension());
 
         for (int i = 0; i < dataSet.getColumnDimension() ; i++) {
-                // coordinates matrix is a p x 1 matrix
-                Matrix coordinates = eigenSpace.getCoordinates(Util.getColumnVector(dataSet, i));
-                // insert coordinates matrix in the projected dataMatrix
-                Util.replaceColumn(projectedData, coordinates, i);
+            // coordinates matrix is a p x 1 matrix
+            Matrix coordinates = eigenSpace.getCoordinates(Util.getColumnVector(dataSet, i));
+            // insert coordinates matrix in the projected dataMatrix
+            Util.replaceColumn(projectedData, coordinates, i);
         }
 
         return projectedData;
@@ -129,13 +147,13 @@ public class Acp implements Serializable {
     }
 
 
-    // TODO: 16/03/2020 test this 
+    // TODO: 16/03/2020 test this
     // our main method used to train the model
-    public Matrix trainModel(){
+    public Matrix trainModel(double percentage){
 
         // import faces from database
         dataSet = importerImages(path);
-
+        System.out.println(dataSet.getColumnDimension());
         // calculate mean
         mean = calculerVisageMoyen(dataSet);
 
@@ -143,12 +161,13 @@ public class Acp implements Serializable {
         dataSet.minusEquals(Util.fillToDuplicatedMatrix(mean, dataSet.getColumnDimension()));
 
         // calculate the eigenvectors of the covariance matrix
-        Matrix eigenvectors = dataSet.svd().getU();
-        Matrix singularValues = dataSet.svd().getS();
+        SingularValueDecomposition singularValueDecomposition = dataSet.svd();
+        Matrix eigenvectors = singularValueDecomposition.getU();
+        Matrix singularValues = singularValueDecomposition.getS();
         Matrix eigenvalues = Util.squareDiagonal(singularValues);
 
         // the reduced eigenspace dimension
-        Matrix newBase = reduireDimensions(eigenvectors, eigenvalues);
+        Matrix newBase = reduireDimensions(eigenvectors, eigenvalues, percentage);
 
         // create the eigenspace
         eigenSpace = creerEigenSpace(newBase, newBase.getColumnDimension());
@@ -163,7 +182,7 @@ public class Acp implements Serializable {
     }
 
 
-    // TODO: 16/03/2020 test this 
+    // TODO: 16/03/2020 test this
     // recognize the new image
     public Result recognize(String path){
 
@@ -175,7 +194,7 @@ public class Acp implements Serializable {
 
         // project the inputFaceMatrix onto the eigen space
         Matrix projectedInputFaceMatrix = projectData(eigenSpace, inputFaceMatrix);
-        
+
 
         // calculate distances
         ArrayList<Double> distances = new ArrayList<>();
@@ -185,15 +204,22 @@ public class Acp implements Serializable {
         }
 
 
-        Iterator<Double> iterator0 = distances.iterator();
-        while (iterator0.hasNext()){
-            System.out.println(iterator0.next());
+
+        Iterator<Double> iterator1 = distances.iterator();
+        int i = 0;
+        File directory = new File(this.path);
+        while (iterator1.hasNext()){
+            double value = iterator1.next();
+            String[] dirList = directory.list();
+            distancesMap.put(dirList[i], value);
+            i++;
+
         }
 
         int foundFaces = 0;
-        Iterator<Double> iterator = distances.iterator();
-        while (iterator.hasNext()){
-            if (iterator.next() <= threshold){
+        Iterator<Double> iterator2 = distances.iterator();
+        while (iterator2.hasNext()){
+            if (iterator2.next() <= threshold){
                 foundFaces++;
             }
         }
@@ -204,6 +230,7 @@ public class Acp implements Serializable {
             return Result.RECONNUE;
         }
         return Result.CONFUSION;
+
     }
 
     public double getThreshold() {
@@ -213,5 +240,10 @@ public class Acp implements Serializable {
     public void setThreshold(double threshold) {
         this.threshold = threshold;
     }
+
+    public EigenSpace getEigenSpace() {
+        return eigenSpace;
+    }
+
 
 }

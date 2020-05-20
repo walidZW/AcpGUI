@@ -1,14 +1,26 @@
-package kernel;
 
-import Jama.util.Maths;
-import org.apache.commons.math.util.MathUtils;
+package kernel;
+/*-----------------------------------------------------------------*/
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.LocatorEx;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfRect;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.highgui.*;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.objdetect.CascadeClassifier;
+import org.opencv.imgcodecs.Imgcodecs;
+
+import static java.lang.String.*;
+/*-----------------------------------------------------------------*/
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import weka.core.Utils;
 import weka.core.matrix.Matrix;
 
 import java.io.Serializable;
-import java.math.MathContext;
 import java.util.ArrayList;
 
 
@@ -20,6 +32,7 @@ public class Util implements Serializable {
     public static Matrix getColumnVector(Matrix data, int n){
         assert n < data.getColumnDimension();
         double[] v = new double[data.getRowDimension()];
+
         for (int i = 0; i < data.getRowDimension(); i++) {
             v[i] = data.get(i, n);
         }
@@ -103,4 +116,29 @@ public class Util implements Serializable {
         return out;
     }
 
-}
+    public static void detectfaces1(String pathh) throws Exception{
+
+
+        // write your code here
+        int x = 0,y = 0,height = 0,width = 0;
+
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+
+        CascadeClassifier faceDetector = new CascadeClassifier("src/classifier/haarcascade_frontalface_alt.xml");
+        Mat image = Imgcodecs.imread(pathh); // enter the path for reading
+
+        MatOfRect face_Detections=new MatOfRect();
+        faceDetector.detectMultiScale(image, face_Detections);
+        //System.out.println((face_Detections.toArray().length));
+        Rect crop=null;
+        int i=1;
+        for (Rect rect : face_Detections.toArray()) {
+            Imgproc.rectangle(image, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height),
+                    new Scalar(0, 255, 0));
+            crop = new Rect(rect.x, rect.y, rect.width, rect.height);
+            Mat image_roi = new Mat(image,crop);
+            Imgcodecs.imwrite("src/userPics/face"+i+".jpg",image_roi); //enter the path for saving
+            ++i;
+        }
+
+}}
